@@ -19,7 +19,15 @@
         "command": "vsmacro.start",
         "title": "Start vsmacro"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "vsmacro",
+          "name": "VSmacro"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
