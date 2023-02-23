@@ -10,14 +10,14 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:vsmacro.helloWorld"
+    "onCommand:vsmacro.start"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vsmacro.helloWorld",
-        "title": "Hello World"
+        "command": "vsmacro.start",
+        "title": "Start vsmacro"
       }
     ]
   },

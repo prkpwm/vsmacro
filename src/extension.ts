@@ -1,26 +1,46 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  let start = vscode.commands.registerCommand("vsmacro.start", () => {
+    vscode.window.showInformationMessage("Macro started!");
+  });
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vsmacro" is now active!');
+  let disposable = vscode.commands.registerCommand(
+    "vsmacro.pasteSelectAll",
+    () => {
+      vscode.window.activeTextEditor?.edit((editBuilder) => {
+        const cursorPosition = vscode.window.activeTextEditor?.selection.active;
+        if (cursorPosition) {
+          editBuilder.insert(cursorPosition, "SELECT * FROM table");
+        }
+      });
+    }
+  );
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('vsmacro.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from vsmacro!');
-	});
+  vscode.window.onDidChangeTextEditorSelection((event) => {
+    const cursorPosition = vscode.window.activeTextEditor?.selection.active;
+    if (cursorPosition) {
+      const pos = new vscode.Range(
+        new vscode.Position(
+          cursorPosition?.line || 0,
+          cursorPosition.character - 3
+        ),
+        cursorPosition!
+      );
+      if (vscode.window.activeTextEditor?.document.getText(pos) === "SFT") {
+        setTimeout(() => {
+          vscode.commands.executeCommand("vsmacro.pasteSelectAll");
+        }, 10);
 
-	context.subscriptions.push(disposable);
+        vscode.window.activeTextEditor?.edit((editBuilder) => {
+          editBuilder.delete(pos);
+        }); 
+      }
+    }
+  });
+
+  context.subscriptions.push(start);
+  context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
