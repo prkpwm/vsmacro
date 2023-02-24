@@ -3,28 +3,33 @@ import * as vscode from "vscode";
 export const macroList = [
   {
     name: "select",
-    key: "sft",
+    key: "sel!",
     description: "SELECT * FROM ",
+    command: "vsmacro.select",
   },
   {
     name: "insert",
-    key: "ift",
+    key: "ins!",
     description: "INSERT INTO ",
+    command: "vsmacro.insert",
   },
   {
     name: "update",
-    key: "uft",
+    key: "upd!",
     description: "UPDATE ",
+    command: "vsmacro.update",
   },
   {
     name: "delete",
-    key: "dft",
+    key: "del!",
     description: "DELETE FROM ",
+    command: "vsmacro.delete",
   },
   {
     name: "console.log",
-    key: "clt",
-    description: "console.log(",
+    key: "clg!",
+    description: "console.log( )",
+    command: "vsmacro.console.log",
   },
 ];
 
@@ -33,38 +38,51 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("Macro started!");
   });
 
-  let disposable = vscode.commands.registerCommand("vsmacro.detect", () => {
-    vscode.window.activeTextEditor?.edit((editBuilder) => {
-      const cursorPosition = vscode.window.activeTextEditor?.selection.active;
-      if (cursorPosition) {
-        editBuilder.insert(cursorPosition, "SELECT * FROM table");
-      }
-    });
-  });
-
   vscode.window.onDidChangeTextEditorSelection((event) => {
     const cursorPosition = vscode.window.activeTextEditor?.selection.active;
     if (cursorPosition) {
       const pos = new vscode.Range(
         new vscode.Position(
           cursorPosition?.line || 0,
-          cursorPosition.character - 3
+          cursorPosition.character - 4
         ),
         cursorPosition!
       );
-      if (vscode.window.activeTextEditor?.document.getText(pos) === "sft") {
-        setTimeout(() => {
-          vscode.commands.executeCommand("vsmacro.detect");
-        }, 50);
 
-        vscode.window.activeTextEditor?.edit((editBuilder) => {
-          editBuilder.delete(pos);
-        });
+      for (let i = 0; i < macroList.length; i++) {
+        if (
+          vscode.window.activeTextEditor?.document.getText(pos) ===
+          macroList[i].key
+        ) {
+          setTimeout(() => {
+            vscode.window.activeTextEditor?.edit((editBuilder) => {
+              const cursorPosition =
+                vscode.window.activeTextEditor?.selection.active;
+              if (cursorPosition) {
+                editBuilder.insert(cursorPosition, macroList[i].description);
+              }
+            });
+          }, 50);
+
+          vscode.window.activeTextEditor?.edit((editBuilder) => {
+            editBuilder.delete(pos);
+          });
+        }
       }
     }
   });
 
-  // show macro list in explorer
+  let arr = macroList.map((macro) => {
+    return vscode.commands.registerCommand(macro.command, () => {
+      vscode.window.activeTextEditor?.edit((editBuilder) => {
+        const cursorPosition = vscode.window.activeTextEditor?.selection.active;
+        if (cursorPosition) {
+          editBuilder.insert(cursorPosition, macro.description);
+        }
+      });
+    });
+  });
+
   vscode.window.registerTreeDataProvider(
     "vsmacro",
     new (class implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -78,8 +96,8 @@ export function activate(context: vscode.ExtensionContext) {
             label: macro.name,
             description: macro.description,
             command: {
-              command: "vsmacro.detect",
-              title: "Detect",
+              command: macro.command,
+              title: macro.name,
             },
           };
         });
@@ -88,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(start);
-  context.subscriptions.push(disposable);
+  context.subscriptions.push(...arr);
 }
 
 export function deactivate() {}
