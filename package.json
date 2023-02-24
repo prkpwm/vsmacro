@@ -23,11 +23,18 @@
     "views": {
       "explorer": [
         {
+          "type": "tree",
           "id": "vsmacro",
           "name": "VSmacro"
+        },
+        {
+          "type": "webview",
+          "id": "vsmacrohtml",
+          "name": "vsmacrohtml"
         }
       ]
     }
+
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

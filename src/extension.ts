@@ -2,34 +2,44 @@ import * as vscode from "vscode";
 
 export const macroList = [
   {
-    name: "select",
-    key: "sel!",
-    description: "SELECT * FROM ",
-    command: "vsmacro.select",
+    name: "sql",
+    children: [
+      {
+        name: "select",
+        key: "sel;",
+        description: "SELECT * FROM ",
+        command: "vsmacro.select",
+      },
+      {
+        name: "insert",
+        key: "ins;",
+        description: "INSERT INTO ",
+        command: "vsmacro.insert",
+      },
+      {
+        name: "update",
+        key: "upd;",
+        description: "UPDATE ",
+        command: "vsmacro.update",
+      },
+      {
+        name: "delete",
+        key: "del;",
+        description: "DELETE FROM ",
+        command: "vsmacro.delete",
+      },
+    ],
   },
   {
-    name: "insert",
-    key: "ins!",
-    description: "INSERT INTO ",
-    command: "vsmacro.insert",
-  },
-  {
-    name: "update",
-    key: "upd!",
-    description: "UPDATE ",
-    command: "vsmacro.update",
-  },
-  {
-    name: "delete",
-    key: "del!",
-    description: "DELETE FROM ",
-    command: "vsmacro.delete",
-  },
-  {
-    name: "console.log",
-    key: "clg!",
-    description: "console.log( )",
-    command: "vsmacro.console.log",
+    name: "common",
+    children: [
+      {
+        name: "console.log",
+        key: "log;",
+        description: "console.log( )",
+        command: "vsmacro.log",
+      },
+    ],
   },
 ];
 
@@ -38,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("Macro started!");
   });
 
-  vscode.window.onDidChangeTextEditorSelection((event) => {
+  vscode.window.onDidChangeTextEditorSelection(() => {
     const cursorPosition = vscode.window.activeTextEditor?.selection.active;
     if (cursorPosition) {
       const pos = new vscode.Range(
@@ -50,35 +60,44 @@ export function activate(context: vscode.ExtensionContext) {
       );
 
       for (let i = 0; i < macroList.length; i++) {
-        if (
-          vscode.window.activeTextEditor?.document.getText(pos) ===
-          macroList[i].key
-        ) {
-          setTimeout(() => {
-            vscode.window.activeTextEditor?.edit((editBuilder) => {
-              const cursorPosition =
-                vscode.window.activeTextEditor?.selection.active;
-              if (cursorPosition) {
-                editBuilder.insert(cursorPosition, macroList[i].description);
-              }
-            });
-          }, 50);
+        for (let j = 0; j < macroList[i].children.length; j++) {
+          if (
+            vscode.window.activeTextEditor?.document
+              .getText(pos)
+              .includes(macroList[i].children[j].key)
+          ) {
+            setTimeout(() => {
+              vscode.window.activeTextEditor?.edit((editBuilder) => {
+                const cursorPosition =
+                  vscode.window.activeTextEditor?.selection.active;
+                if (cursorPosition) {
+                  editBuilder.insert(
+                    cursorPosition,
+                    macroList[i].children[j].description
+                  );
+                }
+              });
+            }, 50);
 
-          vscode.window.activeTextEditor?.edit((editBuilder) => {
-            editBuilder.delete(pos);
-          });
+            vscode.window.activeTextEditor?.edit((editBuilder) => {
+              editBuilder.delete(pos);
+            });
+          }
         }
       }
     }
   });
 
   let arr = macroList.map((macro) => {
-    return vscode.commands.registerCommand(macro.command, () => {
-      vscode.window.activeTextEditor?.edit((editBuilder) => {
-        const cursorPosition = vscode.window.activeTextEditor?.selection.active;
-        if (cursorPosition) {
-          editBuilder.insert(cursorPosition, macro.description);
-        }
+    return macro.children.map((child) => {
+      return vscode.commands.registerCommand(child.command, () => {
+        vscode.window.activeTextEditor?.edit((editBuilder) => {
+          const cursorPosition =
+            vscode.window.activeTextEditor?.selection.active;
+          if (cursorPosition) {
+            editBuilder.insert(cursorPosition, child.description);
+          }
+        });
       });
     });
   });
@@ -91,22 +110,80 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
-        return macroList.map((macro) => {
-          return {
-            label: macro.name,
-            description: macro.description,
-            command: {
-              command: macro.command,
-              title: macro.name,
-            },
-          };
-        });
+        if (element) {
+          return (element as any).children.map((child: any) => {
+            return {
+              label: child.name,
+              command: {
+                command: child.command,
+                title: child.name,
+              },
+            };
+          });
+        } else {
+          return macroList.map((macro) => {
+            return {
+              label: macro.name,
+              collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+              children: macro.children,
+            };
+          });
+        }
+      }
+    })()
+  );
+
+  // show html on the explorer
+  vscode.window.registerWebviewViewProvider(
+    "vsmacrohtml",
+    new (class implements vscode.WebviewViewProvider {
+      resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        context: vscode.WebviewViewResolveContext,
+        token: vscode.CancellationToken
+      ) {
+        webviewView.webview.options = {
+          enableScripts: true,
+        };
+        webviewView.webview.html = `
+        <html>
+          <head>
+            <style>
+              body {
+                color: #fff;
+                font-family: sans-serif;
+                font-size: 1rem;
+              }
+              .container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+              }
+              .title {
+                font-size: 1rem;
+                font-weight: bold;
+              }
+              .description {
+                font-size: 0.8rem;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="title">Hello World</div>
+              <div class="description">This is a sample webview</div>
+              <button onclick="">Click Me</button>
+          </body>
+        </html>
+        `;
       }
     })()
   );
 
   context.subscriptions.push(start);
-  context.subscriptions.push(...arr);
+  context.subscriptions.push(...arr.flat());
 }
 
 export function deactivate() {}
